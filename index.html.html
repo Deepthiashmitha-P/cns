@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Diffie–Hellman Key Exchange Interactive Demo</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Roboto, sans-serif;
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 16px;
+      line-height: 1.5;
+      background: #f9fafb;
+      color: #111;
+    }
+    h1, h2 { color: #1e3a8a; }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    label { display:block; margin-top:8px; font-weight:600; }
+    input[type="text"], textarea {
+      width:100%; padding:8px; margin-top:5px;
+      border-radius:8px; border:1px solid #ccc; font-size:14px;
+    }
+    button {
+      margin-top:10px; padding:10px 16px;
+      background:#2563eb; color:white; font-weight:600;
+      border:none; border-radius:8px; cursor:pointer;
+    }
+    button.secondary { background:#6b7280; }
+    pre {
+      background:#f1f5f9;
+      padding:10px;
+      border-radius:8px;
+      overflow:auto;
+    }
+    .note { font-size:13px; color:#555; }
+    ul { margin-top:6px; }
+  </style>
+</head>
+<body>
+
+  <h1>🔐 Diffie–Hellman Key Exchange Algorithm</h1>
+
+  <div class="card">
+    <h2>📖 Algorithm Description</h2>
+    <p>
+      The <b>Diffie–Hellman Key Exchange</b> is a cryptographic method that allows two parties
+      (usually called <b>Alice</b> and <b>Bob</b>) to establish a shared secret key over an insecure
+      communication channel — without transmitting the secret key directly.
+    </p>
+
+    <h3>⚙️ Steps of the Algorithm:</h3>
+    <ol>
+      <li>Both parties agree on a <b>prime number (P)</b> and a <b>primitive root (G)</b> — these are public.</li>
+      <li>Alice chooses her private key <b>a</b> and computes her public key: <code>X = (G^a) mod P</code>.</li>
+      <li>Bob chooses his private key <b>b</b> and computes his public key: <code>Y = (G^b) mod P</code>.</li>
+      <li>Alice and Bob exchange their public keys.</li>
+      <li>Each computes the <b>shared secret key</b>:
+        <ul>
+          <li>Alice: <code>K = (Y^a) mod P</code></li>
+          <li>Bob: <code>K = (X^b) mod P</code></li>
+        </ul>
+        Both will get the same value of <b>K</b>.
+      </li>
+      <li>The shared key <b>K</b> can then be used for encryption and decryption.</li>
+    </ol>
+
+    <h3>🔎 Example:</h3>
+    <pre>
+P = 23, G = 9
+a = 4 (Alice's private), b = 3 (Bob's private)
+X = 9⁴ mod 23 = 6
+Y = 9³ mod 23 = 16
+K = 16⁴ mod 23 = 9 = 6³ mod 23
+Shared key = 9
+    </pre>
+  </div>
+
+  <div class="card">
+    <h2>🧮 Step 1: Enter Values</h2>
+    <label>Prime Number (P)</label>
+    <input id="p" type="text" value="23">
+    <label>Primitive Root (G)</label>
+    <input id="g" type="text" value="9">
+    <label>Alice's Private Key (a)</label>
+    <input id="a" type="text" value="4">
+    <label>Bob's Private Key (b)</label>
+    <input id="b" type="text" value="3">
+    <button id="compute">Compute Keys</button>
+
+    <div id="output" style="display:none; margin-top:15px;">
+      <h3>🔑 Computed Keys</h3>
+      <pre id="result"></pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🧩 Step 2: Encrypt & Decrypt Message</h2>
+    <p class="note">Uses XOR encryption with the shared key (simple demonstration only).</p>
+    <label>Enter message to encrypt:</label>
+    <textarea id="message" rows="2">hello</textarea>
+    <button id="encryptBtn">Encrypt</button>
+    <button class="secondary" id="decryptBtn">Decrypt</button>
+    <label>Encrypted Text:</label>
+    <textarea id="encrypted" rows="2" readonly></textarea>
+    <label>Decrypted Text:</label>
+    <textarea id="decrypted" rows="2" readonly></textarea>
+  </div>
+
+  <script>
+  // --- modular exponentiation ---
+  function modPow(base, exp, mod) {
+    base = BigInt(base); exp = BigInt(exp); mod = BigInt(mod);
+    let res = 1n;
+    base %= mod;
+    while (exp > 0n) {
+      if (exp % 2n) res = (res * base) % mod;
+      exp /= 2n;
+      base = (base * base) % mod;
+    }
+    return res;
+  }
+
+  const p = document.getElementById('p');
+  const g = document.getElementById('g');
+  const a = document.getElementById('a');
+  const b = document.getElementById('b');
+  const computeBtn = document.getElementById('compute');
+  const resultBox = document.getElementById('result');
+  const output = document.getElementById('output');
+  const msg = document.getElementById('message');
+  const encBtn = document.getElementById('encryptBtn');
+  const decBtn = document.getElementById('decryptBtn');
+  const encTxt = document.getElementById('encrypted');
+  const decTxt = document.getElementById('decrypted');
+
+  let sharedKey = null;
+
+  computeBtn.onclick = () => {
+    const P = BigInt(p.value);
+    const G = BigInt(g.value);
+    const A = BigInt(a.value);
+    const B = BigInt(b.value);
+
+    const X = modPow(G, A, P);
+    const Y = modPow(G, B, P);
+    const KA = modPow(Y, A, P);
+    const KB = modPow(X, B, P);
+
+    if (KA !== KB) {
+      alert("❌ Keys mismatch! Check inputs.");
+      return;
+    }
+
+    sharedKey = Number(KA % 256n); // small integer key for XOR
+    resultBox.textContent =
+      `Alice's Public Key (X) = ${X}\nBob's Public Key (Y) = ${Y}\nShared Secret Key = ${KA}`;
+    output.style.display = 'block';
+    alert("✅ Shared Secret Key generated successfully!");
+  };
+
+  encBtn.onclick = () => {
+    if (sharedKey === null) { alert("Compute keys first!"); return; }
+    const text = msg.value;
+    let cipher = '';
+    for (let i = 0; i < text.length; i++)
+      cipher += String.fromCharCode(text.charCodeAt(i) ^ sharedKey);
+    encTxt.value = cipher;
+    decTxt.value = '';
+  };
+
+  decBtn.onclick = () => {
+    if (sharedKey === null) { alert("Compute keys first!"); return; }
+    const cipher = encTxt.value;
+    let plain = '';
+    for (let i = 0; i < cipher.length; i++)
+      plain += String.fromCharCode(cipher.charCodeAt(i) ^ sharedKey);
+    decTxt.value = plain;
+  };
+  </script>
+</body>
+</html>
